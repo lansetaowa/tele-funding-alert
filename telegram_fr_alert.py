@@ -55,7 +55,6 @@ def format_funding_alert(summary, top_n=3) -> str:
     gate_top = gate_filtered.sort_values("gate_funding_rate", ascending=False).head(top_n)
     gate_bottom = gate_filtered.sort_values("gate_funding_rate").head(top_n)
     gate_max = max(gate_top['gate_funding_rate'])
-    gate_min = min(gate_bottom['gate_funding_rate'])
 
     bi_df = summary['bi_df'].copy()
     bi_filtered = bi_df[bi_df['nextFundingTime']==next_time]
@@ -63,7 +62,6 @@ def format_funding_alert(summary, top_n=3) -> str:
     bi_top = bi_filtered.sort_values("lastFundingRate", ascending=False).head(top_n)
     bi_bottom = bi_filtered.sort_values("lastFundingRate").head(top_n)
     bi_max = max(bi_top['lastFundingRate'])
-    bi_min = min(bi_bottom['lastFundingRate'])
 
     diff_df = summary["filtered_df"].copy()
     diff_top = diff_df.sort_values("fr_diff", ascending=False).head(top_n)
@@ -74,7 +72,7 @@ def format_funding_alert(summary, top_n=3) -> str:
             f"{row[label_col]:<10}_{float(row[value_col]) * 100:.4f}" for _, row in df.iterrows()
         ]).replace(" ", "").replace(",", ", ").replace("_USD", "USD").replace("_", " ")
 
-    if diff_df.shape[0]>=100 or gate_max>=0.001 or gate_min<-0.001 or bi_max>0.001 or bi_min<=-0.001:
+    if diff_df.shape[0]>=100 or gate_max>=0.0015 or bi_max>0.0015:
 
         msg = (
             f"📊 下次发放时间: {next_time}\n"
