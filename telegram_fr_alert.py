@@ -54,34 +54,41 @@ def format_funding_alert(summary, top_n=3) -> str:
 
     gate_top = gate_filtered.sort_values("gate_funding_rate", ascending=False).head(top_n)
     gate_bottom = gate_filtered.sort_values("gate_funding_rate").head(top_n)
+    gate_max = max(gate_top['gate_funding_rate'])
+    gate_min = min(gate_bottom['gate_funding_rate'])
 
     bi_df = summary['bi_df'].copy()
     bi_filtered = bi_df[bi_df['nextFundingTime']==next_time]
 
     bi_top = bi_filtered.sort_values("lastFundingRate", ascending=False).head(top_n)
     bi_bottom = bi_filtered.sort_values("lastFundingRate").head(top_n)
+    bi_max = max(bi_top['lastFundingRate'])
+    bi_min = min(bi_bottom['lastFundingRate'])
 
     diff_df = summary["filtered_df"].copy()
     diff_top = diff_df.sort_values("fr_diff", ascending=False).head(top_n)
     diff_bottom = diff_df.sort_values("fr_diff").head(top_n)
 
     def df_to_text(df, label_col="symbol", value_col="fundingRate"):
-        return "\n".join([
-            f"{row[label_col]:<10} {float(row[value_col])*100:.4f}%" for _, row in df.iterrows()
-        ])
+        return ",".join([
+            f"{row[label_col]:<10}_{float(row[value_col]) * 100:.4f}" for _, row in df.iterrows()
+        ]).replace(" ", "").replace(",", ", ").replace("_USD", "USD").replace("_", " ")
 
-    msg = (
-        f"📊 下次资金费率发放时间：{next_time}\n\n"
-        f"Gate：{gate_filtered.shape[0]} 个合约\n"
-        f"Binance：{bi_filtered.shape[0]} 个合约\n"
-        f"可比对合约（Gate ∩ Binance）：{diff_df.shape[0]} 个\n\n"
-        f"📈 Gate 资金费率最高 Top {top_n}:\n{df_to_text(df=gate_top,value_col="gate_funding_rate")}\n\n"
-        f"📉 Gate 资金费率最低 Top {top_n}:\n{df_to_text(gate_bottom,value_col="gate_funding_rate")}\n\n"
-        f"📈 Binance 资金费率最高 Top {top_n}:\n{df_to_text(bi_top,value_col="lastFundingRate")}\n\n"
-        f"📉 Binance 资金费率最低 Top {top_n}:\n{df_to_text(bi_bottom,value_col="lastFundingRate")}\n\n"
-        f"🆚 Gate - Binance 差值最大 Top {top_n}:\n{df_to_text(diff_top, value_col='fr_diff')}\n\n"
-        f"🆚 Gate - Binance 差值最小 Top {top_n}:\n{df_to_text(diff_bottom, value_col='fr_diff')}"
-    )
+    if diff_df.shape[0]>=100 or gate_max>=0.001 or gate_min<-0.001 or bi_max>0.001 or bi_min<=-0.001:
+
+        msg = (
+            f"📊 下次发放时间: {next_time}\n"
+            f"Gate:{gate_filtered.shape[0]}个, Binance:{bi_filtered.shape[0]}个, 可比对:{diff_df.shape[0]}个\n\n"
+            f"📈 Gate最高%:\n{df_to_text(df=gate_top, value_col='gate_funding_rate')}\n"
+            f"📉 Gate最低%:\n{df_to_text(gate_bottom, value_col='gate_funding_rate')}\n\n"
+            f"📈 Binance最高%:\n{df_to_text(bi_top, value_col='lastFundingRate')}\n"
+            f"📉 Binance最低%:\n{df_to_text(bi_bottom, value_col='lastFundingRate')}\n\n"
+            f"🆚 Gate-Binance差值最大%:\n{df_to_text(diff_top, value_col='fr_diff')}\n"
+            f"🆚 Gate-Binance差值最小%:\n{df_to_text(diff_bottom, value_col='fr_diff')}"
+        )
+
+    else:
+        msg = f"下次发放时间：{next_time}，无行情"
 
     return msg
 
@@ -90,8 +97,8 @@ if __name__ == '__main__':
     # send_alert(message=f"test message at {datetime.datetime.now()}")
     # send_alert_sync(message='test2')
     #
-    # results = get_funding_rate_summary()
-    # print(results['next_funding_time'])
+    results = get_funding_rate_summary()
+    # # print(results['next_funding_time'])
     # print(results['gate_df'].info())
     # print(results['gate_df'].head())
     # print(results['bi_df'].info())
@@ -103,5 +110,5 @@ if __name__ == '__main__':
     # print(bi_filtered.info())
     # print(bi_filtered.head())
 
-    # msg = format_funding_alert(summary=results, top_n=3)
-    # print(msg)
+    msg = format_funding_alert(summary=results, top_n=3)
+    print(msg)
